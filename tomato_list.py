@@ -1,9 +1,12 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
+from ttkbootstrap.widgets import ToolTip
 import json
 import os
 from datetime import datetime
 
+# ── Data persistence ──
 def _get_data_dir():
     if os.name == "nt":
         base = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
@@ -15,7 +18,6 @@ def _get_data_dir():
 
 DATA_FILE = os.path.join(_get_data_dir(), "data.json")
 
-# ── Data ──
 def load_data():
     if os.path.exists(DATA_FILE):
         try:
@@ -29,27 +31,21 @@ def save_data(data):
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# ── Colors ──
-TOMATO = "#e74c3c"
-TOMATO_DARK = "#c0392b"
-TOMATO_LIGHT = "#fce4e4"
-GREEN = "#2ecc71"
-GREEN_DARK = "#27ae60"
-GREEN_LIGHT = "#e8f8ef"
-BLUE = "#3498db"
-BG = "#f5f5f5"
-CARD = "#ffffff"
-TEXT = "#2c3e50"
-TEXT_LIGHT = "#95a5a6"
-BORDER = "#e0e0e0"
 
 class TomatoListApp:
-    def __init__(self, root):
-        self.root = root
+    def __init__(self):
+        # Theme: flatly, litera, cosmo, minty, morph, sandstone, solar, superhero, darkly, vapor
+        self.root = ttk.Window(themename="cosmo")
         self.root.title("Tomato List")
         self.root.geometry("440x680")
         self.root.minsize(380, 600)
-        self.root.configure(bg=BG)
+
+        # Enable DPI awareness on Windows
+        try:
+            self.root.tk.call("tk", "scaling", 1.5)
+        except Exception:
+            pass
+        self._set_dpi_aware()
 
         # State
         data = load_data()
@@ -73,6 +69,17 @@ class TomatoListApp:
         self._build_ui()
         self._update_display()
 
+    def _set_dpi_aware(self):
+        try:
+            from ctypes import windll
+            windll.shcore.SetProcessDpiAwareness(2)  # Per-monitor DPI
+        except Exception:
+            try:
+                from ctypes import windll
+                windll.user32.SetProcessDPIAware()
+            except Exception:
+                pass
+
     def _persist(self):
         save_data({
             "sessions_today": self.sessions_today,
@@ -82,176 +89,155 @@ class TomatoListApp:
 
     # ── UI ──
     def _build_ui(self):
-        # Main container
-        main = tk.Frame(self.root, bg=BG)
-        main.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
+        root = self.root
+        pad = 20
 
-        # Header
-        header = tk.Label(main, text="🍅 Tomato List", font=("Segoe UI", 20, "bold"),
-                          bg=BG, fg=TEXT)
-        header.pack(pady=(0, 12))
+        # ── Header ──
+        header = ttk.Label(root, text="🍅 Tomato List",
+                           font=("Segoe UI", 22, "bold"),
+                           bootstyle="inverse-dark")
+        header.pack(pady=(pad, 12))
 
         # ── Timer Card ──
-        self.timer_frame = tk.Frame(main, bg=CARD, highlightthickness=0,
-                                     bd=0, relief="flat")
-        self.timer_frame.pack(fill=tk.X, pady=(0, 12))
-        # Card shadow via border
-        self.timer_frame.configure(highlightbackground=BORDER, highlightthickness=1)
+        self.timer_frame = ttk.Frame(root, bootstyle="dark", padding=0)
+        self.timer_frame.pack(fill=tk.X, padx=pad, pady=(0, 12))
 
         # Mode tabs
-        tab_frame = tk.Frame(self.timer_frame, bg="#e8e8e8")
-        tab_frame.pack(fill=tk.X, padx=16, pady=(16, 12))
+        tab_outer = ttk.Frame(self.timer_frame, bootstyle="dark")
+        tab_outer.pack(fill=tk.X, padx=16, pady=(16, 12))
+        tab_inner = ttk.Frame(tab_outer, bootstyle="secondary")
+        tab_inner.pack(fill=tk.X)
 
-        self.tab_focus = tk.Button(tab_frame, text="专注", font=("Segoe UI", 10, "bold"),
-                                    bg=CARD, fg=TOMATO, relief="flat", bd=0,
-                                    activebackground=CARD, activeforeground=TOMATO,
-                                    padx=20, pady=6, cursor="hand2",
-                                    command=lambda: self._switch_mode("focus"))
-        self.tab_focus.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 2))
+        self.tab_focus = ttk.Button(tab_inner, text="专注", bootstyle="primary",
+                                     command=lambda: self._switch_mode("focus"))
+        self.tab_focus.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 0))
 
-        self.tab_short = tk.Button(tab_frame, text="短休", font=("Segoe UI", 10, "bold"),
-                                    bg="#e8e8e8", fg=TEXT_LIGHT, relief="flat", bd=0,
-                                    activebackground=CARD, activeforeground=GREEN_DARK,
-                                    padx=20, pady=6, cursor="hand2",
-                                    command=lambda: self._switch_mode("short"))
-        self.tab_short.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=1)
+        self.tab_short = ttk.Button(tab_inner, text="短休", bootstyle="primary-link",
+                                     command=lambda: self._switch_mode("short"))
+        self.tab_short.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=0)
 
-        self.tab_long = tk.Button(tab_frame, text="长休", font=("Segoe UI", 10, "bold"),
-                                   bg="#e8e8e8", fg=TEXT_LIGHT, relief="flat", bd=0,
-                                   activebackground=CARD, activeforeground=BLUE,
-                                   padx=20, pady=6, cursor="hand2",
-                                   command=lambda: self._switch_mode("long"))
-        self.tab_long.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(2, 0))
+        self.tab_long = ttk.Button(tab_inner, text="长休", bootstyle="primary-link",
+                                    command=lambda: self._switch_mode("long"))
+        self.tab_long.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=0)
 
         # Time display
-        self.time_label = tk.Label(self.timer_frame, text="25:00",
-                                    font=("Consolas", 48, "bold"), bg=CARD, fg=TEXT)
-        self.time_label.pack(pady=(8, 0))
+        self.time_label = ttk.Label(self.timer_frame, text="25:00",
+                                     font=("Consolas", 50, "bold"),
+                                     bootstyle="inverse-dark")
+        self.time_label.pack(pady=(10, 0))
 
-        self.status_label = tk.Label(self.timer_frame, text="准备专注",
-                                      font=("Segoe UI", 10), bg=CARD, fg=TEXT_LIGHT)
+        self.status_label = ttk.Label(self.timer_frame, text="准备专注",
+                                       font=("Segoe UI", 10),
+                                       bootstyle="inverse-secondary")
         self.status_label.pack()
 
         # Progress bar
-        self.progress = ttk.Progressbar(self.timer_frame, length=320, mode="determinate")
-        self.progress.pack(pady=(12, 12), padx=30)
+        self.progress = ttk.Progressbar(self.timer_frame, length=320, mode=DETERMINATE,
+                                         bootstyle="primary")
+        self.progress.pack(pady=(16, 16), padx=30)
         self.progress["value"] = 0
 
         # Controls
-        ctrl_frame = tk.Frame(self.timer_frame, bg=CARD)
+        ctrl_frame = ttk.Frame(self.timer_frame, bootstyle="dark")
         ctrl_frame.pack(pady=(0, 8))
 
-        self.btn_reset = tk.Button(ctrl_frame, text="↺", font=("Segoe UI", 14),
-                                    bg="#e8e8e8", fg=TEXT_LIGHT, relief="flat", bd=0,
-                                    width=3, height=1, cursor="hand2",
-                                    activebackground="#ddd",
-                                    command=self._reset_timer)
-        self.btn_reset.pack(side=tk.LEFT, padx=10)
+        self.btn_reset = ttk.Button(ctrl_frame, text="↺", bootstyle="secondary-outline",
+                                     padding=(12, 8), command=self._reset_timer)
+        ToolTip(self.btn_reset, "重置")
+        self.btn_reset.pack(side=tk.LEFT, padx=8)
 
-        self.btn_play = tk.Button(ctrl_frame, text="▶", font=("Segoe UI", 16),
-                                   bg=TOMATO, fg="white", relief="flat", bd=0,
-                                   width=4, height=1, cursor="hand2",
-                                   activebackground=TOMATO_DARK, activeforeground="white",
-                                   command=self._toggle_timer)
-        self.btn_play.pack(side=tk.LEFT, padx=10)
+        self.btn_play = ttk.Button(ctrl_frame, text="▶  开始专注",
+                                    bootstyle="primary", padding=(24, 10),
+                                    command=self._toggle_timer)
+        self.btn_play.pack(side=tk.LEFT, padx=8)
 
         # Session count
-        self.session_label = tk.Label(self.timer_frame, text="",
-                                       font=("Segoe UI", 10), bg=CARD, fg=TEXT_LIGHT)
-        self.session_label.pack(pady=(4, 0))
+        self.session_label = ttk.Label(self.timer_frame, text="",
+                                        font=("Segoe UI", 10),
+                                        bootstyle="inverse-secondary")
+        self.session_label.pack(pady=(6, 0))
         self._update_session_label()
 
         # Settings
-        settings_frame = tk.Frame(self.timer_frame, bg=CARD)
-        settings_frame.pack(pady=(10, 16))
+        settings_frame = ttk.Frame(self.timer_frame, bootstyle="dark")
+        settings_frame.pack(pady=(12, 16))
 
-        self._make_setting(settings_frame, "专注", "focus", TOMATO, 0)
-        self._make_setting(settings_frame, "短休", "short", GREEN_DARK, 1)
-        self._make_setting(settings_frame, "长休", "long", BLUE, 2)
+        self._make_setting(settings_frame, "专注 (分)", "focus", "primary")
+        self._make_setting(settings_frame, "短休 (分)", "short", "success")
+        self._make_setting(settings_frame, "长休 (分)", "long", "info")
 
         # ── Todo Card ──
-        self.todo_frame = tk.Frame(main, bg=CARD, highlightthickness=0)
-        self.todo_frame.pack(fill=tk.BOTH, expand=True)
-        self.todo_frame.configure(highlightbackground=BORDER, highlightthickness=1)
+        self.todo_frame = ttk.Frame(root, bootstyle="dark", padding=0)
+        self.todo_frame.pack(fill=tk.BOTH, expand=True, padx=pad, pady=(0, pad))
 
-        todo_header = tk.Frame(self.todo_frame, bg=CARD)
+        # Header
+        todo_header = ttk.Frame(self.todo_frame, bootstyle="dark")
         todo_header.pack(fill=tk.X, padx=16, pady=(16, 8))
 
-        tk.Label(todo_header, text="待办事项", font=("Segoe UI", 14, "bold"),
-                 bg=CARD, fg=TEXT).pack(side=tk.LEFT)
+        ttk.Label(todo_header, text="待办事项",
+                  font=("Segoe UI", 15, "bold"),
+                  bootstyle="inverse-dark").pack(side=tk.LEFT)
 
-        self.todo_count_label = tk.Label(todo_header, text="0 项", font=("Segoe UI", 10),
-                                          bg=CARD, fg=TEXT_LIGHT)
+        self.todo_count_label = ttk.Label(todo_header, text="0 项",
+                                           font=("Segoe UI", 10),
+                                           bootstyle="inverse-secondary")
         self.todo_count_label.pack(side=tk.RIGHT)
 
         # Input row
-        input_frame = tk.Frame(self.todo_frame, bg=CARD)
-        input_frame.pack(fill=tk.X, padx=16, pady=(0, 8))
+        input_frame = ttk.Frame(self.todo_frame, bootstyle="dark")
+        input_frame.pack(fill=tk.X, padx=16, pady=(0, 10))
 
-        self.todo_entry = tk.Entry(input_frame, font=("Segoe UI", 11),
-                                    bg="#f8f8f8", fg=TEXT, relief="flat",
-                                    highlightbackground=BORDER, highlightthickness=1,
-                                    insertbackground=TEXT)
-        self.todo_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=6, padx=(0, 6))
+        self.todo_entry = ttk.Entry(input_frame, font=("Segoe UI", 11))
+        self.todo_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
         self.todo_entry.bind("<Return>", lambda e: self._add_todo())
 
-        add_btn = tk.Button(input_frame, text="添加", font=("Segoe UI", 10, "bold"),
-                             bg=TOMATO, fg="white", relief="flat", bd=0, padx=16, pady=6,
-                             cursor="hand2", activebackground=TOMATO_DARK,
-                             activeforeground="white", command=self._add_todo)
-        add_btn.pack(side=tk.RIGHT)
+        self.btn_add = ttk.Button(input_frame, text="添加", bootstyle="primary",
+                                   command=self._add_todo)
+        self.btn_add.pack(side=tk.RIGHT)
 
-        # Todo list
-        list_bg = tk.Frame(self.todo_frame, bg=CARD)
-        list_bg.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 8))
+        # Todo list area
+        list_container = ttk.Frame(self.todo_frame, bootstyle="dark")
+        list_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 8))
 
-        self.todo_canvas = tk.Canvas(list_bg, bg=CARD, highlightthickness=0, bd=0)
-        scrollbar = ttk.Scrollbar(list_bg, orient=tk.VERTICAL, command=self.todo_canvas.yview)
-        self.todo_scroll_frame = tk.Frame(self.todo_canvas, bg=CARD)
+        self.todo_canvas = tk.Canvas(list_container, highlightthickness=0, bd=0,
+                                      bg=self.root.style.colors.dark)
+        self.todo_scroll_frame = ttk.Frame(self.todo_canvas, bootstyle="dark")
 
         self.todo_scroll_frame.bind("<Configure>",
-            lambda e: self.todo_canvas.configure(scrollregion=self.todo_canvas.bbox("all")))
+            lambda e: self.todo_canvas.configure(
+                scrollregion=self.todo_canvas.bbox("all")))
 
-        self.todo_canvas_window = self.todo_canvas.create_window((0, 0),
-            window=self.todo_scroll_frame, anchor="nw", tags="self.todo_scroll_frame")
+        self.todo_canvas_window = self.todo_canvas.create_window(
+            (0, 0), window=self.todo_scroll_frame, anchor="nw")
 
-        self.todo_canvas.configure(yscrollcommand=scrollbar.set)
-
-        self.todo_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
-        # Bind canvas resize
         self.todo_canvas.bind("<Configure>", self._on_canvas_resize)
-        # Mouse wheel
         self.todo_canvas.bind("<MouseWheel>", self._on_mousewheel)
 
-        # Clear done button
-        btn_frame = tk.Frame(self.todo_frame, bg=CARD)
+        self.todo_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Clear button
+        btn_frame = ttk.Frame(self.todo_frame, bootstyle="dark")
         btn_frame.pack(fill=tk.X, padx=16, pady=(0, 12))
-        self.clear_btn = tk.Button(btn_frame, text="清空已完成", font=("Segoe UI", 9),
-                                    bg=CARD, fg=TEXT_LIGHT, relief="solid", bd=1,
-                                    highlightbackground=BORDER, padx=12, pady=3,
-                                    cursor="hand2", activebackground=TOMATO_LIGHT,
-                                    command=self._clear_done)
+        self.clear_btn = ttk.Button(btn_frame, text="清空已完成",
+                                     bootstyle="secondary-outline",
+                                     command=self._clear_done)
         self.clear_btn.pack(side=tk.RIGHT)
 
-        # Initial render
         self._render_todos()
 
-    def _make_setting(self, parent, label, mode, color, col):
-        frame = tk.Frame(parent, bg=CARD)
-        frame.pack(side=tk.LEFT, padx=10)
+    def _make_setting(self, parent, label, mode, bootstyle):
+        frame = ttk.Frame(parent, bootstyle="dark")
+        frame.pack(side=tk.LEFT, padx=12)
 
-        tk.Label(frame, text=label, font=("Segoe UI", 8), bg=CARD, fg=TEXT_LIGHT).pack()
+        ttk.Label(frame, text=label, font=("Segoe UI", 8),
+                  bootstyle="inverse-secondary").pack()
 
         sv = tk.StringVar(value=str(self.minutes[mode]))
         sv.trace_add("write", lambda *a, m=mode, v=sv: self._on_setting_change(m, v))
 
-        entry = tk.Entry(frame, textvariable=sv, font=("Segoe UI", 11, "bold"),
-                         bg="#f8f8f8", fg=color, relief="flat", width=3,
-                         justify="center", highlightbackground=BORDER, highlightthickness=1,
-                         insertbackground=color)
-        entry.pack(ipady=3)
+        entry = ttk.Entry(frame, textvariable=sv, font=("Segoe UI", 12, "bold"),
+                          bootstyle=bootstyle, width=4, justify=CENTER)
+        entry.pack(ipady=2, pady=(2, 0))
         setattr(self, f"setting_{mode}", entry)
 
     def _on_canvas_resize(self, event):
@@ -271,19 +257,17 @@ class TomatoListApp:
         self._update_tabs()
 
     def _update_tabs(self):
-        active_bg = CARD
-        inactive_bg = "#e8e8e8"
-
+        styles = {"focus": "primary", "short": "success", "long": "info"}
         tabs = [
-            (self.tab_focus, "focus", TOMATO),
-            (self.tab_short, "short", GREEN_DARK),
-            (self.tab_long, "long", BLUE),
+            (self.tab_focus, "focus"),
+            (self.tab_short, "short"),
+            (self.tab_long, "long"),
         ]
-        for btn, mode, color in tabs:
+        for btn, mode in tabs:
             if mode == self.mode:
-                btn.configure(bg=active_bg, fg=color, activeforeground=color)
+                btn.configure(bootstyle=styles[mode])
             else:
-                btn.configure(bg=inactive_bg, fg=TEXT_LIGHT, activeforeground=color)
+                btn.configure(bootstyle="primary-link")
 
     def _update_session_label(self):
         self.session_label.configure(text=f"今日专注 {self.sessions_today} 次")
@@ -312,16 +296,10 @@ class TomatoListApp:
             self.total_seconds = self.seconds_left
 
         self.running = True
-        self.btn_play.configure(text="⏸", bg=TOMATO_DARK)
+        self.btn_play.configure(text="⏸  暂停", bootstyle="warning")
         mode_names = {"focus": "专注中…", "short": "短休中…", "long": "长休中…"}
         self.status_label.configure(text=mode_names[self.mode])
-
-        # Highlight card
-        if self.mode == "focus":
-            self.timer_frame.configure(highlightbackground=TOMATO, highlightthickness=2)
-        else:
-            self.timer_frame.configure(highlightbackground=GREEN, highlightthickness=2)
-
+        self._update_tabs()
         self._tick()
 
     def _stop_timer(self):
@@ -329,10 +307,10 @@ class TomatoListApp:
         if self.after_id:
             self.root.after_cancel(self.after_id)
             self.after_id = None
-        self.btn_play.configure(text="▶", bg=TOMATO)
+        self.btn_play.configure(text="▶  开始专注", bootstyle="primary")
         mode_names = {"focus": "准备专注", "short": "准备短休", "long": "准备长休"}
         self.status_label.configure(text=mode_names[self.mode])
-        self.timer_frame.configure(highlightbackground=BORDER, highlightthickness=1)
+        self._update_tabs()
 
     def _tick(self):
         if not self.running:
@@ -353,7 +331,6 @@ class TomatoListApp:
             self._switch_mode("short")
         else:
             self._switch_mode("focus")
-        # Bring window to front
         self.root.lift()
         self.root.attributes("-topmost", True)
         self.root.after(200, lambda: self.root.attributes("-topmost", False))
@@ -368,17 +345,17 @@ class TomatoListApp:
         m = self.seconds_left // 60
         s = self.seconds_left % 60
         self.time_label.configure(text=f"{m:02d}:{s:02d}")
-        progress_pct = (1 - self.seconds_left / self.total_seconds) * 100 if self.total_seconds > 0 else 0
+
+        progress_pct = (1 - self.seconds_left / self.total_seconds) * 100 \
+            if self.total_seconds > 0 else 0
         self.progress["value"] = progress_pct
 
-        # Color time text based on mode when running
+        # Color based on mode
         if self.running:
-            if self.mode == "focus":
-                self.time_label.configure(fg=TOMATO)
-            else:
-                self.time_label.configure(fg=GREEN)
+            colors = {"focus": "danger", "short": "success", "long": "info"}
+            self.time_label.configure(bootstyle=colors[self.mode])
         else:
-            self.time_label.configure(fg=TEXT)
+            self.time_label.configure(bootstyle="inverse-dark")
 
     # ── Todo Logic ──
     def _add_todo(self):
@@ -421,10 +398,11 @@ class TomatoListApp:
         all_todos = active + done
 
         if not all_todos:
-            empty_label = tk.Label(self.todo_scroll_frame,
-                                    text="还没有任务\n添加一个开始吧",
-                                    font=("Segoe UI", 10), bg=CARD, fg=TEXT_LIGHT)
-            empty_label.pack(pady=20)
+            ttk.Label(self.todo_scroll_frame,
+                      text="还没有任务\n添加一个开始吧",
+                      font=("Segoe UI", 10),
+                      bootstyle="inverse-secondary",
+                      justify=CENTER).pack(pady=24)
             self.clear_btn.pack_forget()
         else:
             for todo in all_todos:
@@ -434,50 +412,40 @@ class TomatoListApp:
             else:
                 self.clear_btn.pack_forget()
 
-        active_count = len(active)
-        self.todo_count_label.configure(text=f"{active_count} 项")
+        self.todo_count_label.configure(text=f"{len(active)} 项")
 
     def _create_todo_row(self, todo):
-        row = tk.Frame(self.todo_scroll_frame, bg=CARD)
-        row.pack(fill=tk.X, padx=6, pady=2)
+        row = ttk.Frame(self.todo_scroll_frame, bootstyle="dark")
+        row.pack(fill=tk.X, padx=4, pady=1)
 
         # Check button
-        check_text = "✓" if todo["done"] else ""
-        check_bg = GREEN if todo["done"] else CARD
-        check_fg = "white" if todo["done"] else BORDER
-        check_border = GREEN if todo["done"] else "#ccc"
-
-        check = tk.Button(row, text=check_text, font=("Segoe UI", 10, "bold"),
-                          bg=check_bg, fg=check_fg, relief="solid", bd=2,
-                          width=2, height=1, cursor="hand2",
-                          activebackground=GREEN_LIGHT if not todo["done"] else GREEN,
-                          highlightbackground=check_border, highlightthickness=0)
-        check.configure(command=lambda t=todo: self._toggle_todo(t["id"]))
+        if todo["done"]:
+            check = ttk.Button(row, text="✓", bootstyle="success",
+                                padding=(4, 4),
+                                command=lambda t=todo: self._toggle_todo(t["id"]))
+        else:
+            check = ttk.Button(row, text="○", bootstyle="secondary-outline",
+                                padding=(4, 4),
+                                command=lambda t=todo: self._toggle_todo(t["id"]))
         check.pack(side=tk.LEFT, padx=(0, 10))
 
         # Text
-        text_fg = TEXT_LIGHT if todo["done"] else TEXT
+        text_fg = "inverse-secondary" if todo["done"] else "inverse-dark"
         text_font = ("Segoe UI", 11, "overstrike" if todo["done"] else "normal")
-        text_label = tk.Label(row, text=todo["text"], font=text_font,
-                               bg=CARD, fg=text_fg, anchor="w")
+        text_label = ttk.Label(row, text=todo["text"], font=text_font,
+                                bootstyle=text_fg, anchor="w", wraplength=260)
         text_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-        # Delete button
-        del_btn = tk.Button(row, text="×", font=("Segoe UI", 14),
-                             bg=CARD, fg="#ccc", relief="flat", bd=0,
-                             width=2, cursor="hand2", activebackground=TOMATO_LIGHT,
-                             activeforeground=TOMATO,
-                             command=lambda t=todo: self._delete_todo(t["id"]))
+        # Delete
+        del_btn = ttk.Button(row, text="×", bootstyle="secondary-link",
+                              padding=(4, 4),
+                              command=lambda t=todo: self._delete_todo(t["id"]))
         del_btn.pack(side=tk.RIGHT)
 
-        # Separator
-        sep = tk.Frame(self.todo_scroll_frame, bg=BORDER, height=1)
-        sep.pack(fill=tk.X, padx=6)
+    def run(self):
+        self.root.mainloop()
 
-def main():
-    root = tk.Tk()
-    app = TomatoListApp(root)
-    root.mainloop()
 
 if __name__ == "__main__":
-    main()
+    app = TomatoListApp()
+    app.run()
