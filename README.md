@@ -2,25 +2,35 @@
 
 番茄钟 + 待办清单桌面应用。
 
+![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey)
+![Python](https://img.shields.io/badge/python-3.9+-blue)
+
+## 功能
+
+- **番茄钟** — 专注 / 短休 / 长休三种模式，时长可自定义
+- **专注计数** — 每日专注次数记录，跨天自动清零
+- **待办清单** — 添加、勾选完成、删除、清空已完成
+- **数据持久化** — 自动保存至 `%LOCALAPPDATA%\TomatoList\data.json`，启动恢复
+- **现代界面** — CustomTkinter，跟随系统明/暗模式，圆角卡片风格
+- **快捷键** — `Space` 开始/暂停计时，`Ctrl+N` 聚焦输入框
+
 ## 技术栈
 
 | 层级 | 技术 |
-|------|------|
+|---|---|
 | 语言 | Python 3.9+ |
-| GUI 框架 | tkinter（Python 内置） |
-| UI 主题 | [ttkbootstrap](https://github.com/israel-dryer/ttkbootstrap) 1.18（Flatly / Cosmo 等 Bootstrap 风格主题） |
-| 打包工具 | [PyInstaller](https://pyinstaller.org) 6.x（`--onefile --windowed`） |
-| 数据持久化 | JSON 文件（`%LOCALAPPDATA%\TomatoList\data.json`） |
-| 安装包制作 | [Inno Setup](https://jrsoftware.org/isinfo.php)（`setup.iss`，可选） |
+| GUI | [CustomTkinter](https://github.com/TomSchimansky/CustomTkinter) 5.x |
+| 打包 | [PyInstaller](https://pyinstaller.org) 6.x |
+| 存储 | JSON 文件 |
 
 ## 项目结构
 
 ```
 tomato_list_app/
-├── tomato_list.py          # 主程序源代码
-├── setup.iss               # Inno Setup 安装包脚本（可选）
+├── tomato_list.py
+├── Tomato List.spec          # PyInstaller 打包配置
 ├── dist/
-│   └── Tomato List.exe     # 打包后的可执行文件
+│   └── Tomato List.exe       # 打包后的可执行文件
 └── README.md
 ```
 
@@ -28,32 +38,34 @@ tomato_list_app/
 
 ```bash
 # 安装依赖
-pip install ttkbootstrap pyinstaller
+pip install customtkinter pyinstaller
 
 # 运行
 python tomato_list.py
 
 # 打包为 exe
-pyinstaller --onefile --windowed --name "Tomato List" tomato_list.py
+pyinstaller "Tomato List.spec"
 ```
 
 ## 分发
 
-- 直接发送 `dist/Tomato List.exe` 即可，免安装、双击运行
-- 如需安装包，用 Inno Setup 编译 `setup.iss`
-
-## 功能
-
-- 番茄钟：专注 / 短休 / 长休 三种模式，可自定义时长
-- 专注次数记录（按天重置）
-- 待办清单：添加、勾选完成、删除、清空已完成
-- 数据自动保存，启动恢复
+直接发送 `dist/Tomato List.exe`，免安装、双击运行。无注册表、无后台进程。
 
 ## 卸载
-
-应用为便携版，无安装痕迹、无注册表、无后台进程。彻底删除只需两步：
 
 1. 删除 exe 文件
 2. 删除数据目录 `%LOCALAPPDATA%\TomatoList\`
 
-即打开文件资源管理器，地址栏输入 `%LOCALAPPDATA%`，找到 `TomatoList` 文件夹删除即可。
+## 更新日志
+
+### V2
+
+- 从 ttkbootstrap 迁移至 CustomTkinter
+- 支持跟随系统明/暗模式
+- 圆角卡片风格，更现代的视觉
+- 字体优化（Trebuchet MS）
+
+### V1
+
+- 基于 ttkbootstrap 主题的初始版本
+- 番茄钟 + 待办清单基础功能
