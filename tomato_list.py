@@ -215,6 +215,11 @@ class TomatoListApp:
 
         self.todo_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
+        self.todo_scrollbar = ttk.Scrollbar(list_container, orient=tk.VERTICAL,
+                                             command=self.todo_canvas.yview)
+        self.todo_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.todo_canvas.configure(yscrollcommand=self.todo_scrollbar.set)
+
         # Clear button
         btn_frame = ttk.Frame(self.todo_frame, bootstyle="dark")
         btn_frame.pack(fill=tk.X, padx=16, pady=(0, 12))
@@ -224,6 +229,10 @@ class TomatoListApp:
         self.clear_btn.pack(side=tk.RIGHT)
 
         self._render_todos()
+
+        # Keyboard shortcuts
+        self.root.bind("<space>", lambda e: self._on_space())
+        self.root.bind("<Control-n>", lambda e: self.todo_entry.focus_set())
 
     def _make_setting(self, parent, label, mode, bootstyle):
         frame = ttk.Frame(parent, bootstyle="dark")
@@ -245,6 +254,11 @@ class TomatoListApp:
 
     def _on_mousewheel(self, event):
         self.todo_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def _on_space(self):
+        if self.root.focus_get() == self.todo_entry:
+            return
+        self._toggle_timer()
 
     # ── Timer Logic ──
     def _switch_mode(self, mode):
@@ -307,7 +321,8 @@ class TomatoListApp:
         if self.after_id:
             self.root.after_cancel(self.after_id)
             self.after_id = None
-        self.btn_play.configure(text="▶  开始专注", bootstyle="primary")
+        play_labels = {"focus": "开始专注", "short": "开始短休", "long": "开始长休"}
+        self.btn_play.configure(text=f"▶  {play_labels[self.mode]}", bootstyle="primary")
         mode_names = {"focus": "准备专注", "short": "准备短休", "long": "准备长休"}
         self.status_label.configure(text=mode_names[self.mode])
         self._update_tabs()
@@ -322,6 +337,14 @@ class TomatoListApp:
         else:
             self._finish_timer()
 
+    def _play_sound(self):
+        try:
+            import winsound
+            for freq in (800, 1000, 1200):
+                winsound.Beep(freq, 180)
+        except Exception:
+            self.root.bell()
+
     def _finish_timer(self):
         self._stop_timer()
         if self.mode == "focus":
@@ -331,6 +354,7 @@ class TomatoListApp:
             self._switch_mode("short")
         else:
             self._switch_mode("focus")
+        self._play_sound()
         self.root.lift()
         self.root.attributes("-topmost", True)
         self.root.after(200, lambda: self.root.attributes("-topmost", False))

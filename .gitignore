@@ -1,0 +1,31 @@
+# Build output
+build/
+dist/
+*.spec
+
+# Installer output
+installer/
+
+# Archives
+*.zip
+*.7z
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+
+# Local data (user runtime data, not versioned)
+data.json
